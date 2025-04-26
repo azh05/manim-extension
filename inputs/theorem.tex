@@ -1,0 +1,49 @@
+\documentclass{article}
+\usepackage{amsthm, amssymb, amsmath}
+
+\newtheorem{theorem}{Theorem}
+
+\begin{document}
+
+\begin{theorem}[Mean Value Theorem]
+Let \( f : [a, b] \to \mathbb{R} \) be a function that is continuous on the closed interval \([a, b]\) and differentiable on the open interval \((a, b)\). Then there exists some \( c \in (a, b) \) such that:
+
+\[
+f'(c) = \frac{f(b) - f(a)}{b - a}
+\]
+\end{theorem}
+
+\begin{proof}
+Define the auxiliary function:
+
+\[
+g(x) = f(x) - \left( \frac{f(b) - f(a)}{b - a} \right)(x - a)
+\]
+
+Notice that \( g \) is continuous on \([a, b]\) and differentiable on \((a, b)\), because \( f \) is and the other terms are polynomials. Moreover,
+
+\[
+g(a) = f(a)
+\]
+\[
+g(b) = f(b) - \left( \frac{f(b) - f(a)}{b - a} \right)(b - a) = f(b) - (f(b) - f(a)) = f(a)
+\]
+
+Thus, \( g(a) = g(b) \). By Rolle's Theorem, there exists some \( c \in (a, b) \) such that \( g'(c) = 0 \).
+
+Calculating \( g'(x) \):
+
+\[
+g'(x) = f'(x) - \left( \frac{f(b) - f(a)}{b - a} \right)
+\]
+
+Setting \( g'(c) = 0 \) gives:
+
+\[
+f'(c) = \frac{f(b) - f(a)}{b - a}
+\]
+
+as desired. \qedhere
+\end{proof}
+
+\end{document}

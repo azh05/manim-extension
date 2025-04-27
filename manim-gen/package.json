@@ -15,7 +15,7 @@
       "commands": [
       {
         "command": "manim-gen.showVideo",
-        "title": "Show Video"
+        "title": "Visualize with Manim"
       }
     ],
 

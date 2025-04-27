@@ -9,11 +9,17 @@ def generate_intuition():
     
     model = genai.GenerativeModel('gemini-2.5-flash-preview-04-17')
     prompt = f"""
-    Explain the intuition behind this theorem in a way suitable for creating a visual animation.
-    Focus on geometric interpretations, key steps, or relationships between objects. 
-    Clearly describe what the geometric objects are and how they interact with each other.
-    Return the explanation in 2-3 paragraphs.
-    
+    Explain the intuition behind this theorem in a way specifically optimized for creating a visual animation.
+
+    Focus on:
+    - Geometric interpretations, spatial relationships, and dynamic movements.
+    - Describing visual elements (points, lines, shapes, curves, vectors, areas, etc.) clearly.
+    - Highlighting how these objects interact, transform, or evolve over time.
+    - Emphasizing step-by-step visual clarity — avoid abstract descriptions without a clear visual counterpart.
+
+    Write in 2–3 paragraphs.
+    Keep the explanation intuitive, vivid, and easy to map to a visual sequence.
+
     Theorem: {theorem}
     """
     response = model.generate_content(prompt)

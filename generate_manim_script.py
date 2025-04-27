@@ -27,6 +27,17 @@ def fix_manim_imports(code: str) -> str:
     fixed_code = ["from manim import *"] + lines
     return "\n".join(fixed_code)
 
+def check_syntax_errors(code: str) -> str | None:
+    """Check the given Python code for syntax errors. Return error message if any, else None."""
+    print("Checking syntax errors...")
+    try:
+        compile(code, '<string>', 'exec')
+        return None
+    except SyntaxError as e:
+        return f"SyntaxError: {e}"
+    except Exception as e:
+        return f"Error: {e}"
+
 def generate_manim_script():
     with open('inputs/theorem.txt', 'r') as f:
         theorem = f.read()
@@ -107,6 +118,37 @@ def generate_manim_script():
 
     # Fix imports
     final_code = fix_manim_imports(final_code)
+
+
+    # Checking for syntax errors
+    syntax_error = check_syntax_errors(final_code)
+    retry_count = 0
+    max_retries = 5
+
+    while syntax_error and retry_count < max_retries:
+        print(f"Syntax error detected: {syntax_error}")
+        print(f"Retrying generation... (Attempt {retry_count + 1})")
+
+        error_fix_prompt = f"""
+        The previously generated Manim code had the following syntax errors:
+
+        {syntax_error}
+
+        Please regenerate the corrected code according to all the previous instructions.
+        Make sure to fix all syntax issues.
+        Output only the corrected code, inside ```python fences.
+        """
+
+        reviewed_response = generate_with_retry(model, error_fix_prompt)
+        final_code = extract_code_block(reviewed_response.text)
+        final_code = fix_manim_imports(final_code)
+
+        syntax_error = check_syntax_errors(final_code)
+        retry_count += 1
+
+    if syntax_error:
+        raise RuntimeError(f"Failed to generate syntax-error-free code after {max_retries} attempts. Last error: {syntax_error}")
+
 
     with open('theorem_animation.py', 'w') as f:
         f.write(final_code)

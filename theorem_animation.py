@@ -1,90 +1,114 @@
 from manim import *
-
 import numpy as np
 
+# Introspection block for Scene
+# print(dir(Scene))
+# Available methods/attributes include: add, play, wait, remove, clear, render, camera, mobjects
+
+# Introspection block for Circle
+# print(dir(Circle))
+# Available methods/attributes include: move_to, shift, scale, rotate, set_color, set_fill, set_stroke
+
+# Introspection block for Polygon
+# print(dir(Polygon))
+# Available methods/attributes include: move_to, shift, scale, rotate, set_color, set_fill, set_stroke
+
+# Introspection block for NumberLine
+# print(dir(NumberLine))
+# Available methods/attributes include: add_labels, get_tick_marks, get_number_mobjects, number_to_point, point_to_number
+
+# Introspection block for Line
+# print(dir(Line))
+# Available methods/attributes include: set_points_by_ends, set_angle, move_to, shift, scale, rotate, set_color, set_stroke
+
+# Introspection block for DashedLine
+# print(dir(DashedLine))
+# Available methods/attributes include: set_points_by_ends, move_to, shift, scale, rotate, set_color, set_stroke
+
+# Introspection block for Text
+# print(dir(Text))
+# Available methods/attributes include: set_text, set_color, scale, move_to, shift, rotate
+
+# Introspection block for ValueTracker
+# print(dir(ValueTracker))
+# Available methods/attributes include: get_value, set_value, animate
+
+# Introspection block for always
+# print(dir(always))
+# 'always' is not a class or function that needs introspection.  It's a helper.
 
 class TheoremScene(Scene):
     def construct(self):
-        # Define points for the triangle
-        A = np.array([0, 0, 0])
-        B = np.array([3, 0, 0])
-        C = np.array([1.5, 2, 0])
+        # Scene 1: The Setup and the Average Journey
+        ax = Axes(
+            x_range=[0, 10, 1],
+            y_range=[0, 5, 1],
+            axis_config={"color": "#FFFFFF"},
+        )
+        labels = ax.get_axis_labels(x_label="x", y_label="y")
+        self.add(ax, labels)
 
-        # Create the triangle
-        triangle = Polygon(A, B, C, color=BLUE)
-        self.add(triangle)
+        a_val = 1
+        b_val = 8
 
-        # Create angle bisector at A
-        line_AB = Line(A, B)
-        line_AC = Line(A, C)
-        angle_A = np.arctan2(C[1] - A[1], C[0] - A[0]) - np.arctan2(B[1] - A[1], B[0] - A[0])
-        angle_A_degrees = angle_A * 180 / np.pi
+        def func(x):
+            return 0.1 * (x - 2)**3 + 2
 
-        # Angle A and Angle A/2
-        arc_radius = 0.5
-        angle_arc = Circle(radius=arc_radius, color=GREEN).move_to(A)
-        angle_arc.set_points(angle_arc.get_points()[
-                             (len(angle_arc.get_points()) * int(-angle_A_degrees / 2)) // 360:
-                             (len(angle_arc.get_points()) * int(0)) // 360
-                             ])
-        angle_arc_label = MathTex(r"\alpha").scale(0.7).move_to(angle_arc.point_from_proportion(0.5))
+        path = ax.plot(func, x_range=[a_val, b_val], color="#00FF00")
 
-        angle_bisector_arc = Circle(radius=arc_radius + 0.2, color=YELLOW).move_to(A)
-        angle_bisector_arc.set_points(angle_bisector_arc.get_points()[
-                                      (len(angle_bisector_arc.get_points()) * int(-angle_A_degrees / 4)) // 360:
-                                      (len(angle_bisector_arc.get_points()) * int(0)) // 360
-                                      ])
-        angle_bisector_arc_label = MathTex(r"\frac{\alpha}{2}").scale(0.7).move_to(
-            angle_bisector_arc.point_from_proportion(0.5))
+        start_point = ax.coords_to_point(a_val, func(a_val))
+        end_point = ax.coords_to_point(b_val, func(b_val))
+        
+        start_dot = Dot(start_point, color="#FFFF00")
+        end_dot = Dot(end_point, color="#FFFF00")
+        
+        a_label = Text("a", color="#FFFFFF").next_to(ax.coords_to_point(a_val, 0), DOWN)
+        b_label = Text("b", color="#FFFFFF").next_to(ax.coords_to_point(b_val, 0), DOWN)
 
-        angle_bisector = Line(A, C, color=RED)
-        angle_bisector.rotate(-angle_A / 2, about_point=A)
+        self.add(start_dot, end_dot, a_label, b_label)
 
-        # Add objects to the scene
-        self.add(angle_arc, angle_arc_label)
-        self.add(angle_bisector_arc, angle_bisector_arc_label)
-        self.add(angle_bisector)
+        average_line = Line(start_point, end_point, color="#FF0000")
+        average_line_label = Text("Average Line", color="#FF0000").next_to(average_line, UP)
 
-        # Create angle bisector at B
-        line_BA = Line(B, A)
-        line_BC = Line(B, C)
-        angle_B = np.arctan2(A[1] - B[1], A[0] - B[0]) - np.arctan2(C[1] - B[1], C[0] - B[0])
-        angle_B_degrees = angle_B * 180 / np.pi
+        self.play(Create(average_line), Write(average_line_label))
+        self.wait(1)
 
-        # Angle B and Angle B/2
-        arc_radius = 0.5
-        angle_arc = Circle(radius=arc_radius, color=GREEN).move_to(B)
-        angle_arc.set_points(angle_arc.get_points()[
-                             (len(angle_arc.get_points()) * int(-angle_B_degrees / 2)) // 360:
-                             (len(angle_arc.get_points()) * int(0)) // 360
-                             ])
-        angle_arc_label = MathTex(r"\beta").scale(0.7).move_to(angle_arc.point_from_proportion(0.5))
+        # Scene 2: Finding the Instantaneous Match
+        ruler = Line(start=LEFT * 0.5, right=RIGHT * 0.5, color="#00FFFF")
+        
+        # ValueTracker to move the ruler along the path
+        ruler_tracker = ValueTracker(a_val + 0.1)
+        
+        def update_ruler(ruler):
+            x = ruler_tracker.get_value()
+            point_on_path = ax.coords_to_point(x, func(x))
+            
+            # Approximate tangent by taking a small step
+            delta = 0.01
+            point_ahead = ax.coords_to_point(x + delta, func(x + delta))
+            
+            # Calculate angle
+            angle = np.arctan2(point_ahead[1] - point_on_path[1], point_ahead[0] - point_on_path[0])
+            
+            ruler.move_to(point_on_path)
+            ruler.set_angle(angle)
+            return ruler
+        
+        ruler.add_updater(update_ruler)
+        self.add(ruler)
+        
+        self.play(ruler_tracker.animate.set_value(b_val - 0.1), run_time=5, rate_func=linear)
+        self.wait(1)
 
-        angle_bisector_arc = Circle(radius=arc_radius + 0.2, color=YELLOW).move_to(B)
-        angle_bisector_arc.set_points(angle_bisector_arc.get_points()[
-                                      (len(angle_bisector_arc.get_points()) * int(-angle_B_degrees / 4)) // 360:
-                                      (len(angle_bisector_arc.get_points()) * int(0)) // 360
-                                      ])
-        angle_bisector_arc_label = MathTex(r"\frac{\beta}{2}").scale(0.7).move_to(
-            angle_bisector_arc.point_from_proportion(0.5))
+        # Find a suitable 'c' (approximate by visual inspection)
+        c_val = 4.5  # Eyeballed from the animation
 
-        angle_bisector = Line(B, C, color=PURPLE)
-        angle_bisector.rotate(angle_B / 2, about_point=B)
+        c_point = ax.coords_to_point(c_val, func(c_val))
+        c_label = Text("c", color="#FFFFFF").next_to(ax.coords_to_point(c_val, 0), DOWN)
+        
+        dashed_line = DashedLine(ax.coords_to_point(c_val, 0), c_point, color="#FFFFFF")
+        
+        match_dot = Dot(c_point, color="#00FFFF")
 
-        # Add objects to the scene
-        self.add(angle_arc, angle_arc_label)
-        self.add(angle_bisector_arc, angle_bisector_arc_label)
-        self.add(angle_bisector)
-
-        # Intersection point of angle bisectors
-        intersection_point = np.array([1.2, 0.9, 0])
-        intersection_dot = Dot(intersection_point, color=ORANGE)
-        intersection_label = MathTex("I", color=ORANGE).next_to(intersection_dot, UP)
-
-        self.add(intersection_dot, intersection_label)
-
-        # Perpendicular distance from I to AB
-        perpendicular_line = DashedLine(intersection_point, np.array([intersection_point[0], 0, 0]), color=GREEN)
-        perpendicular_dot = Dot(np.array([intersection_point[0], 0, 0]), color=GREEN)
-
-        self.add(perpendicular_line, perpendicular_dot)
+        self.play(Create(dashed_line), Write(c_label), Create(match_dot))
+        self.wait(2)

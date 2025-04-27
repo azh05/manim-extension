@@ -1,7 +1,10 @@
 
 const vscode = require('vscode');
+const fs = require('fs');
+const path = require('path');
 const { convertDollarToMathJax } = require('../utils/latex');
 const { getWebviewVideoContent } = require('../utils/webview');
+const { runPythonScript } = require('../utils/pythonRunner');
 
 /**
  * Registers the "Show Video" command and returns its Disposable.
@@ -12,45 +15,72 @@ function registerShowVideoCommand(context) {
   return vscode.commands.registerCommand(
     'manim-gen.showVideo',
     async () => {
-      // Get the active text editor and any selected LaTeX code
+      // 1) Retrieve selected LaTeX or fallback
       const editor = vscode.window.activeTextEditor;
-      const selectedText = editor ? editor.document.getText(editor.selection) : '';
+      const rawLatex = editor
+        ? editor.document.getText(editor.selection) || 'E = mc^2'
+        : 'E = mc^2';
 
-      // Default to a sample formula if nothing is selected
-      const rawLatex = selectedText || 'E = mc^2';
-
-      // Convert dólar-style delimiters to MathJax format
+      // 2) Sanitize delimiters for MathJax
       const safeLatex = convertDollarToMathJax(rawLatex);
-      console.log('Converted LaTeX:', safeLatex);
 
-      // Create and show a WebviewPanel to display the video and rendered LaTeX
-      const panel = vscode.window.createWebviewPanel(
-        'video',                   // internal identifier
-        'Intuition Video with LaTeX',       // user-facing title
-        vscode.ViewColumn.One,         // display in first column
-        {
-          enableScripts: true,
-          localResourceRoots: [
-            vscode.Uri.joinPath(context.extensionUri, 'media')
-          ]
-        }
-      );
+      // 3) Ensure output directory under global storage
+      const outDirUri = vscode.Uri.joinPath(context.globalStorageUri, 'manim-output');
+      const outDir = outDirUri.fsPath;
+      try {
+        await fs.promises.mkdir(outDir, { recursive: true });
+      } catch (err) {
+        vscode.window.showErrorMessage(`Failed to create output directory: ${err.message}`);
+        return;
+      }
 
-      // Construct URI to the bundled video file
-      const videoPath = vscode.Uri.joinPath(
-        context.extensionUri,
-        'media',
-        'test.mp4'
-      );
-      const videoSrc = panel.webview.asWebviewUri(videoPath);
+      vscode.window.showInformationMessage("Generating Latex Video and Tab")
 
-      // Set the HTML content of the panel
-      panel.webview.html = getWebviewVideoContent(videoSrc, safeLatex);
+      // 4) Run the Python script, which should print the path to the generated video
+      const videoFilePath = vscode.Uri.joinPath(
+        context.globalStorageUri, "manim-output.mp4"
+      )
+      
+      try {
+        const result = await runPythonScript(
+          context,
+          'manim-scripts/make_animation.py',
+          [safeLatex, outDir]
+        );
+
+        console.log(result)
+      } catch (err) {
+        console.log(err.message)
+        vscode.window.showErrorMessage(`Error running Python: ${err.message}`);
+        return;
+      }
+
+        // 5) Create and show a Webview panel with the video and LaTeX
+        const panel = vscode.window.createWebviewPanel(
+            'videoLatex',
+            'Visualization with Manim',
+            vscode.ViewColumn.One,
+            {
+                enableScripts: true,                       // for MathJax
+                localResourceRoots: [
+                    context.globalStorageUri,                // allow loading from /…/globalStorage/ext-id/
+                ]
+            }
+        );
+
+      // Convert local video file path into a Webview URI
+      let videoUri;
+      try {
+        videoUri = panel.webview.asWebviewUri(videoFilePath);
+      } catch {
+        vscode.window.showErrorMessage(`Invalid video path returned: ${videoFilePath}`);
+        return;
+      }
+
+      // 6) Set HTML content
+      panel.webview.html = panel.webview.html = getWebviewVideoContent(panel, videoUri, safeLatex);
     }
   );
 }
 
-module.exports = {
-  registerShowVideoCommand
-};
-
+module.exports = { registerShowVideoCommand };
